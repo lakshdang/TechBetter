@@ -1,0 +1,33 @@
+{
+  // Required
+	"manifest_version": 2,
+	"name": "MyExtension",
+	"version": "1.0.0.0",
+	"permissions": ["activeTab", "storage", "tabs", "alarms"],
+	"background": {
+		"scripts": ["background.js"],
+		"persistent": false
+	},
+	 "browser_action": {
+          "default_icon": {                    
+			"16": "images/get_started16.png",
+      		"32": "images/get_started32.png",
+      		"48": "images/get_started48.png",
+      		"128": "images/get_started128.png"           
+          },
+          "default_title": "TechBetter"
+        },
+	"content_scripts":[
+		{
+			"run_at": "document_end",
+			"matches": ["https://www.youtube.com/*"],
+			"js": ["youtubeContent.js"]
+		}
+	],
+	"icons":{
+      "16": "images/get_started16.png",
+      "32": "images/get_started32.png",
+      "48": "images/get_started48.png",
+      "128": "images/get_started128.png"
+    }
+}
