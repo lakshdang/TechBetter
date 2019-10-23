@@ -3,38 +3,56 @@
 
 var sites = ['stackoverflow.com', "www.w3schools.com"];
 var workTimerActive = false;
-console.log(chrome.runtime.id);
 
 var test = [];
 
 var settings = {
-	"blockedsites": sites,
+	"blockedsites": [],
 	"youtube":{
-		"Video": ["1L0TKZQcUtA"],
-		"Playlist":["PLrAXtmErZgOeiKm4sgNOknGvNjby9efdf"],
+		"Video": [],
+		"Playlist":[],
 		"Channel":[]
 	}
 }
 
-function blockYoutubeUrl(url){
-	var params = new URLSearchParams(url);
-	// console.log(params);
-}
+chrome.runtime.onMessage.addListener(
+  function(request, sender, sendResponse){
+    if(request.reason == "videoParams"){
+    	// console.log(sender.tab.id);
+    	// console.log("Youtube Video Params: \n", request);
+    	if(request==undefined)
+			return;
 
-function blockUrl(url){
-	var host = new URL(url).host;
-	if(sites.indexOf(host)>-1)
-		return true;
-	// if(host.indexOf("youtube.com")>-1)
-		// return blockYoutubeUrl(url);
-	blockYoutubeUrl(url);
+		var whitelistedVideo = request.videoId==null || settings.youtube["Video"].indexOf(request.videoId)>-1;
+		var whitelistedPlaylist = settings.youtube["Playlist"].indexOf(request.playlistId)>-1;
+		var whitelistedChannel = settings.youtube["Channel"].indexOf(request.channelId)>-1;
+		
+		if(!(whitelistedVideo || whitelistedPlaylist || whitelistedChannel))
+			chrome.tabs.update(sender.tab.id, {url: "pageBlocked.html"});
+    }
+});
+
+
+function isBlockedHost(tab){
+	var host = new URL(tab.url).host;
+	for(var i=0; i<settings.blockedsites.length; i++){
+		if(tab.url.indexOf(settings.blockedsites[i])>-1)return true;
+	}
 	return false;
 }
 
 function blockTab(tab){
-	var blockCurrUrl = blockUrl(tab.url);
-	if(workTimerActive && blockCurrUrl){
+	if(!workTimerActive)return;
+
+	if(isBlockedHost(tab)){
 		chrome.tabs.update(tab.id, {url: "pageBlocked.html"});
+		return;
+	}
+
+	var host = new URL(tab.url).host;
+	if(new String(host).valueOf() == new String ("www.youtube.com").valueOf()){
+		// console.log("tab: ", tab.id, " is a youtube tab");
+		chrome.tabs.sendMessage(tab.id, {reason: "getVideoParams"});
 	}
 }
 
@@ -46,7 +64,7 @@ function unBlockTab(tab){
 }
 
 chrome.runtime.onInstalled.addListener(function(){
-	updateSiteList(sites);
+	// updateSiteList(sites);
 	console.log("Extension initialized");
 });
 
@@ -61,13 +79,17 @@ function updateSiteList(sites){
 };
 
 chrome.browserAction.onClicked.addListener(function(){
-	chrome.alarms.create("TechBetterAlarm", {delayInMinutes: 1});
-	workTimerActive = true;
-	chrome.tabs.query({}, function(tabs){
-		tabs.forEach(function(tab, tabIdx){
-			blockTab(tab);
+	if(workTimerActive)return;
+	chrome.storage.sync.get(["settings"], function(result){
+        settings = result.settings;
+        chrome.alarms.create("TechBetterAlarm", {delayInMinutes: settings.workTime});
+		workTimerActive = true;
+        chrome.tabs.query({}, function(tabs){
+			tabs.forEach(function(tab, tabIdx){
+				blockTab(tab);
+			});
 		});
-	});
+    });
 });
 
 chrome.alarms.onAlarm.addListener(function(alarm){
@@ -93,8 +115,8 @@ chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab){
 
 chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab){
 	var hostIsYoutube = new URL(tab.url).host == "www.youtube.com";
-	if(hostIsYoutube && (changeInfo.url != undefined || changeInfo.status=="complete" || changeInfo.title != undefined)){
-	// if(hostIsYoutube && changeInfo.status=="complete"){
+	if(hostIsYoutube && (changeInfo.status=="complete" || changeInfo.title != undefined)){
+	// if(hostIsYoutube && (changeInfo.status=="complete")){
 		chrome.tabs.sendMessage(tabId, {url: tab.url, listener: "youtubeListener", settings: settings});
 	}
 });

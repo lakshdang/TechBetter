@@ -2,9 +2,6 @@ console.log("Youtube Content Script Started");
 
 var buttonInsertDivs = ["ytd-playlist-sidebar-primary-info-renderer", "ytd-playlist-panel-renderer", "app-header-layout"]
 
-getYoutubeSettings(function(settings){
-	console.log(settings)
-})
 // var observer = new MutationObserver(function(mutations){
 // 	mutations.forEach(function(mutation) {
 //     	if(mutation.addedNodes.length==0)return;
@@ -34,7 +31,23 @@ chrome.runtime.onMessage.addListener(
   		addVideoButton(request);
     	addPlaylistButton(request);
     	addChannelButton(request);
-    	// console.log(request.settings);
+  	}
+ });
+
+chrome.runtime.onMessage.addListener(
+  function(request, sender, sendResponse){
+  	if(request.reason == "getVideoParams"){
+  		console.log("inside getVideoParams message listener");
+  		var params = new URLSearchParams(window.location.search);
+  		var playlistId = null;
+  		var videoId = null;
+  		var channelId = null;
+  		if(params.has("list"))playlistId = params.get("list");
+  		if(params.has("v")){
+	  		videoId = params.get("v");
+	  		channelId = getVideoChannelId();
+  		}
+  		chrome.runtime.sendMessage({reason:"videoParams", videoId: videoId, playlistId:playlistId, channelId:channelId});
   	}
  });
 
@@ -80,7 +93,8 @@ function addChannelButton(request){
 
 function getVideoChannelId(){
 	var channelElement = document.getElementsByTagName("ytd-video-owner-renderer")[0].getElementsByTagName("ytd-channel-name")[0].getElementsByTagName('a')[0];
-	return channelElement.getAttribute("href");
+	var arr = channelElement.getAttribute("href").split("/");
+	return arr[arr.length-1];
 }
 
 function getCanonical(){
@@ -103,7 +117,8 @@ function extractChannelId(){
 
 function insertButton(resourceType, menu, request){
 	var buttonId = "TechBetterButton-"+resourceType
-	var extensionBtn = document.getElementById(buttonId);
+	// var extensionBtn = document.getElementById(buttonId);
+	// console.log(extensionBtn);
 	if(menu == undefined || menu == null)
 		return;
 	var btn = document.createElement("BUTTON");
@@ -114,12 +129,11 @@ function insertButton(resourceType, menu, request){
 		btn.onclick = function(){
 			toggleBtnHTML(btn, resourceType);
 		}
-		if(extensionBtn != null){
+		var extensionBtn = document.getElementById(buttonId);
+		if(extensionBtn != null)
 			extensionBtn.parentNode.removeChild(extensionBtn);
-		}
 		menu.append(btn);
 	})
-
 }
 
 function updateButtonState(request, resourceType, state){
@@ -140,18 +154,10 @@ function getInitialToggleState(request, resourceType, callback){
 function toggleBtnHTML(btn, resourceType){
 	var currState = btn.getAttribute("toggleState");
 	resourceId = getResourceId(resourceType);
-	// console.log(currVal);
-	// if(currState=="Whitelist")
-	// 	btn.setAttribute("toggleState", "Blacklist");
-	// else 
-	// 	btn.setAttribute("toggleState", "Whitelist");
-	// btn.innerHTML = btn.getAttribute("toggleState") + " " + resourceType;
-	// chrome.runtime.sendMessage({reason:"toggleResource", resourceType:resourceType, resourceId: resourceId, currState: currState});
 	
 	getYoutubeSettings(function(settings){
 		youtubeSettings = settings.youtube;
-		// console.log(youtubeSettings[resourceType])
-		removeResource(youtubeSettings[resourceType], resourceId);
+		removeItemFromArray(youtubeSettings[resourceType], resourceId);
 		if(currState=="Whitelist")
 			youtubeSettings[resourceType].push(resourceId);
 		
@@ -163,12 +169,9 @@ function toggleBtnHTML(btn, resourceType){
 
 			btn.innerHTML = btn.getAttribute("toggleState") + " " + resourceType;
 			getYoutubeSettings(function(result){
-				console.log(settings.youtube);
+				// console.log(settings.youtube);
 			})
 		});
-
-		// console.log(youtubeSettings[resourceType])
-		// console.log(settings);
 	})
 }
 
@@ -196,7 +199,7 @@ function updateYoutubeSettings(settings, callback){
 	});
 }
 
-function removeResource(resourceWhiteList, resourceId){
+function removeItemFromArray(resourceWhiteList, resourceId){
 	var index = resourceWhiteList.indexOf(resourceId);
 	if (index > -1) 
 		resourceWhiteList.splice(index, 1);

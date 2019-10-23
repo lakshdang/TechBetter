@@ -4,6 +4,7 @@
 	"name": "MyExtension",
 	"version": "1.0.0.0",
 	"permissions": ["activeTab", "storage", "tabs", "alarms"],
+	"options_page": "options.html",
 	"background": {
 		"scripts": ["background.js"],
 		"persistent": false
@@ -19,7 +20,7 @@
         },
 	"content_scripts":[
 		{
-			"run_at": "document_end",
+			"run_at": "document_start",
 			"matches": ["https://www.youtube.com/*"],
 			"js": ["youtubeContent.js"]
 		}
