@@ -74,19 +74,17 @@ function addPlaylistButton(request){
 		var menu = document.getElementsByTagName("ytd-playlist-panel-renderer")[0];
 		insertButton("Playlist", menu, request);
 	}
+
 	if(isPlaylistPage){
 		var menu = document.getElementsByTagName("ytd-playlist-sidebar-primary-info-renderer")[0];
 		insertButton("Playlist", menu, request);
-	}
-
-	// console.log(document.getElementById("TechBetterButton-Playlist"));
+	}	
 }
 
 function addChannelButton(request){
 	var isChannelPage = window.location.pathname.indexOf("/channel") == 0;
 	var isUserPage = window.location.pathname.indexOf("/user") == 0
 	if(!(isChannelPage || isUserPage))return;
-	// console.log(getCanonical());
 	var menu = document.getElementById("inner-header-container");
 	insertButton("Channel", menu, request);
 }

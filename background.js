@@ -8,6 +8,7 @@ var test = [];
 
 var settings = {
 	"blockedsites": [],
+	"workTime": 5,
 	"youtube":{
 		"Video": [],
 		"Playlist":[],
@@ -65,7 +66,16 @@ function unBlockTab(tab){
 
 chrome.runtime.onInstalled.addListener(function(){
 	// updateSiteList(sites);
-	console.log("Extension initialized");
+	chrome.storage.sync.get(["settings"], function(result){
+		if(result.settings==undefined){
+			chrome.storage.sync.set({"settings":settings}, function(){
+				console.log("Settings and Extension initialized");
+			})
+		}
+		else
+			console.log("Extension initialized");
+		
+	})
 });
 
 function updateSiteList(sites){
